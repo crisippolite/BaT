@@ -28,7 +28,7 @@ interface AuctionCardProps {
 
 export function AuctionCard({ auction, score, signals }: AuctionCardProps) {
   const navigate = useNavigate();
-  const { compareIds, toggleCompare } = useAppStore();
+  const { compareIds } = useAppStore();
   const isCompared = compareIds.includes(auction._id);
   const showAccent = score != null && score >= 85;
 
