@@ -1,0 +1,29 @@
+{
+  "name": "bat-signal-scraper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BaT auction scraper service — Playwright + node-cron",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "scrape:single": "tsx src/cli.ts scrape",
+    "discover": "tsx src/cli.ts discover"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "node-cron": "^3.0.3",
+    "convex": "^1.17.0",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/express": "^5.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
