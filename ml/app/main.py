@@ -1,0 +1,117 @@
+"""BaT Signal ML Service — Price prediction API."""
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+import os
+import time
+
+from .model import PredictionModel
+from .features import build_feature_vector
+
+app = FastAPI(
+    title="BaT Signal ML Service",
+    description="Price prediction and confidence intervals for BMW 2002 auctions",
+    version="0.1.0",
+)
+
+# Initialize model
+model = PredictionModel()
+
+
+class PredictionRequest(BaseModel):
+    """Auction features for prediction."""
+    # Static features
+    year_of_car: Optional[int] = None
+    is_tii: bool = False
+    has_ac: bool = False
+    has_5_speed: bool = False
+    engine_swap_type: str = "none"
+    has_widebody: bool = False
+    has_recaro: bool = False
+    has_ducktail: bool = False
+    has_lsd: bool = False
+    mileage_band: str = "unknown"
+    rust_grade: str = "unknown"
+    color_desirability: float = 0.5
+    location_region: str = "unknown"
+
+    # Dynamic features
+    current_bid: int = 0
+    bid_count: int = 0
+    hours_remaining: float = 48.0
+    bid_velocity_1h: float = 0.0
+    bid_velocity_6h: float = 0.0
+    bid_velocity_24h: float = 0.0
+    reserve_met: bool = False
+
+    # Market context
+    category_median_30d: Optional[int] = None
+    category_volume_30d: Optional[int] = None
+
+
+class PredictionResponse(BaseModel):
+    """Prediction result with confidence interval."""
+    predicted_final: int
+    confidence_low: int
+    confidence_high: int
+    model_version: str
+    predicted_at: float
+    features_used: dict
+
+
+class TrainRequest(BaseModel):
+    """Trigger model retraining."""
+    force: bool = False
+
+
+class ModelInfo(BaseModel):
+    """Current model metadata."""
+    version: str
+    trained_at: Optional[float]
+    training_samples: Optional[int]
+    mae: Optional[float]
+    mape: Optional[float]
+    r2: Optional[float]
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "model_loaded": model.is_loaded()}
+
+
+@app.get("/model/info", response_model=ModelInfo)
+async def model_info():
+    return model.get_info()
+
+
+@app.post("/predict", response_model=PredictionResponse)
+async def predict(request: PredictionRequest):
+    """Generate price prediction for an auction."""
+    features = build_feature_vector(request.model_dump())
+    prediction = model.predict(features)
+
+    return PredictionResponse(
+        predicted_final=prediction["predicted_final"],
+        confidence_low=prediction["confidence_low"],
+        confidence_high=prediction["confidence_high"],
+        model_version=model.version,
+        predicted_at=time.time(),
+        features_used=features,
+    )
+
+
+@app.post("/train")
+async def train(request: TrainRequest):
+    """Trigger model retraining (stub)."""
+    # TODO: Implement actual training pipeline
+    # This would:
+    # 1. Fetch completed auction data from Convex
+    # 2. Build feature vectors
+    # 3. Train XGBoost model
+    # 4. Evaluate on holdout set
+    # 5. Save model if improved
+    return {
+        "status": "not_implemented",
+        "message": "Training pipeline is not yet implemented. See ml/app/train.py",
+    }
