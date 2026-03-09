@@ -53,7 +53,7 @@ export function DetailView() {
     );
   }
 
-  const bidChartData = (bids ?? []).map((b) => ({
+  const bidChartData = (bids ?? []).map((b: { scrapedAt: number; bidAmount: number }) => ({
     time: b.scrapedAt,
     bidAmount: b.bidAmount,
   }));
@@ -171,7 +171,7 @@ export function DetailView() {
               <h3 style={{ fontSize: "var(--text-md)", fontWeight: 600, marginBottom: "var(--space-3)" }}>
                 Bonus Features
               </h3>
-              {auction.bonusFeatures.map((feat) => (
+              {auction.bonusFeatures.map((feat: { featureKey: string; featureLabel?: string; pointsDefault?: number }) => (
                 <div key={feat.featureKey} className="prefs-row">
                   <span>{feat.featureLabel ?? feat.featureKey}</span>
                   <span className="mono" style={{ color: "var(--color-orange)" }}>
