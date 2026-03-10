@@ -9,6 +9,9 @@ build/
 .next/
 .vercel/
 
+# Convex generated files (regenerated on deploy)
+convex/_generated/
+
 # Environment files
 .env
 .env.local
