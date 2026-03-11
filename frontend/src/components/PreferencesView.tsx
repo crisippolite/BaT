@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useUser, SignInButton } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { Toggle } from "./Toggle";
 import toast from "react-hot-toast";
@@ -16,21 +17,28 @@ const BONUS_FEATURES = [
 ];
 
 export function PreferencesView() {
+  const { isSignedIn } = useUser();
   const defaults = useQuery(api.preferences.getDefaults);
+  const savedPrefs = useQuery(api.preferences.get);
   const savePrefs = useMutation(api.preferences.save);
 
-  const [prefs, setPrefs] = useState(() => {
-    // Load from localStorage or use defaults
-    const saved = localStorage.getItem("bat-signal-prefs");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // fall through
+  const [prefs, setPrefs] = useState<Record<string, any> | null>(null);
+
+  // Load prefs: prefer server-saved (authenticated), then localStorage, then defaults
+  useEffect(() => {
+    if (savedPrefs?.prefsJson) {
+      setPrefs(savedPrefs.prefsJson);
+    } else {
+      const saved = localStorage.getItem("bat-signal-prefs");
+      if (saved) {
+        try {
+          setPrefs(JSON.parse(saved));
+        } catch {
+          // fall through
+        }
       }
     }
-    return null;
-  });
+  }, [savedPrefs]);
 
   // Use defaults until prefs are loaded
   const currentPrefs = prefs ?? defaults ?? {
@@ -48,11 +56,10 @@ export function PreferencesView() {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem("bat-signal-token") ?? undefined;
-      const result = await savePrefs({
+      await savePrefs({
         token,
         prefsJson: currentPrefs,
       });
-      localStorage.setItem("bat-signal-token", result.token);
       toast.success("Preferences saved");
     } catch (err) {
       toast.error("Failed to save preferences");
@@ -78,6 +85,41 @@ export function PreferencesView() {
           Save
         </button>
       </div>
+
+      {!isSignedIn && (
+        <div
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-md)",
+            padding: "var(--space-4)",
+            marginBottom: "var(--space-5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)" }}>
+            Sign in to save preferences across devices
+          </span>
+          <SignInButton mode="modal">
+            <button
+              style={{
+                background: "var(--color-orange)",
+                color: "white",
+                border: "none",
+                borderRadius: "var(--radius-md)",
+                padding: "6px 16px",
+                fontSize: "var(--text-sm)",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Sign In
+            </button>
+          </SignInButton>
+        </div>
+      )}
 
       {/* Pass/Fail Criteria */}
       <div className="prefs-section">
