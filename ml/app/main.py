@@ -103,15 +103,38 @@ async def predict(request: PredictionRequest):
 
 @app.post("/train")
 async def train(request: TrainRequest):
-    """Trigger model retraining (stub)."""
-    # TODO: Implement actual training pipeline
-    # This would:
-    # 1. Fetch completed auction data from Convex
-    # 2. Build feature vectors
-    # 3. Train XGBoost model
-    # 4. Evaluate on holdout set
-    # 5. Save model if improved
+    """Trigger model retraining."""
+    convex_url = os.environ.get("CONVEX_URL", "")
+    if not convex_url:
+        raise HTTPException(status_code=500, detail="CONVEX_URL env var not set")
+
+    from .train import fetch_training_data, prepare_features, train_model, evaluate_model, save_model
+
+    df = fetch_training_data(convex_url)
+    if df.empty:
+        return {"status": "no_data", "message": "No completed auctions available for training"}
+
+    if len(df) < 10:
+        return {"status": "insufficient_data", "message": f"Only {len(df)} auctions — need at least 10"}
+
+    X, y = prepare_features(df)
+
+    # Time-based split
+    split_idx = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
+    models = train_model(X_train, y_train)
+    metrics = evaluate_model(models, X_test, y_test)
+    version = save_model(models, metrics, len(X_train))
+
+    # Reload the model
+    global model
+    model = PredictionModel()
+
     return {
-        "status": "not_implemented",
-        "message": "Training pipeline is not yet implemented. See ml/app/train.py",
+        "status": "success",
+        "version": version,
+        "training_samples": len(X_train),
+        "metrics": metrics,
     }

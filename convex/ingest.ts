@@ -1,5 +1,6 @@
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 // Verify scraper secret from request header
 function verifySecret(request: Request, envSecret: string | undefined): boolean {
@@ -44,6 +45,11 @@ export const upsertAuction = httpAction(async (ctx, request) => {
         ...body.attributes,
       });
     }
+
+    // Trigger ML prediction in the background (fire-and-forget)
+    await ctx.scheduler.runAfter(0, internal.mlBridge.requestPrediction, {
+      auctionId: auctionId as Id<"auctions">,
+    });
 
     return new Response(JSON.stringify({ auctionId }), {
       status: 200,
@@ -100,6 +106,27 @@ export const logScrape = httpAction(async (ctx, request) => {
     });
 
     return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: String(error) }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+});
+
+// HTTP action: export completed auction data for ML training
+export const exportTrainingData = httpAction(async (ctx, request) => {
+  const secret = process.env.SCRAPER_SECRET;
+  if (!verifySecret(request, secret)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const data = await ctx.runQuery(internal.mlBridge.getTrainingData);
+    return new Response(JSON.stringify(data), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
