@@ -1,5 +1,5 @@
 import { httpRouter } from "convex/server";
-import { upsertAuction, insertBids, logScrape, storePrediction } from "./ingest";
+import { upsertAuction, insertBids, logScrape, storePrediction, exportTrainingData } from "./ingest";
 
 const http = httpRouter();
 
@@ -27,6 +27,13 @@ http.route({
   path: "/ingest/prediction",
   method: "POST",
   handler: storePrediction,
+});
+
+// Training data export for ML service
+http.route({
+  path: "/export/training-data",
+  method: "GET",
+  handler: exportTrainingData,
 });
 
 export default http;

@@ -19,6 +19,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import requests
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, r2_score
 
@@ -29,31 +30,150 @@ MODEL_DIR = os.environ.get("MODEL_DIR", "models")
 
 def fetch_training_data(convex_url: str) -> pd.DataFrame:
     """
-    Fetch completed auction data from Convex.
+    Fetch completed auction data from the Convex HTTP export endpoint.
 
-    TODO: Implement using Convex HTTP API or Python client.
-    For now, returns empty DataFrame.
+    The endpoint returns an array of auction objects with attributes,
+    bid counts, and final prices for all ended auctions.
     """
-    print(f"[train] Would fetch data from {convex_url}")
-    print("[train] Training data fetch not yet implemented")
-    return pd.DataFrame()
+    scraper_secret = os.environ.get("SCRAPER_SECRET", "")
+    if not scraper_secret:
+        print("[train] Error: SCRAPER_SECRET env var required for data export")
+        return pd.DataFrame()
+
+    # Build the export URL from the Convex site URL
+    # convex_url is like https://xxx.convex.cloud, site URL is https://xxx.convex.site
+    site_url = convex_url.replace(".convex.cloud", ".convex.site")
+    export_url = f"{site_url}/export/training-data"
+
+    print(f"[train] Fetching training data from {export_url}")
+
+    try:
+        response = requests.get(
+            export_url,
+            headers={"Authorization": f"Bearer {scraper_secret}"},
+            timeout=60,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        if not data:
+            print("[train] No completed auctions found")
+            return pd.DataFrame()
+
+        df = pd.DataFrame(data)
+        print(f"[train] Fetched {len(df)} completed auctions")
+
+        # Filter: only rows with a valid final price
+        df = df[df["finalPrice"].notna() & (df["finalPrice"] > 0)]
+        print(f"[train] {len(df)} auctions with valid final prices")
+
+        # Rename finalPrice to final_price for compatibility with prepare_features
+        df = df.rename(columns={"finalPrice": "final_price"})
+
+        return df
+
+    except requests.RequestException as e:
+        print(f"[train] Failed to fetch training data: {e}")
+        return pd.DataFrame()
 
 
 def prepare_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     """
     Transform raw auction data into feature vectors and target.
+    Maps the Convex export format to the feature engineering input format.
     """
     feature_rows = []
     targets = []
 
     for _, row in df.iterrows():
-        features = build_feature_vector(row.to_dict())
+        title_lower = str(row.get("title", "")).lower()
+        engine_lower = str(row.get("engine") or "").lower()
+        transmission_lower = str(row.get("transmission") or "").lower()
+
+        # Map export columns to feature input format
+        raw = {
+            "year_of_car": row.get("year"),
+            "is_tii": "tii" in title_lower or "injection" in engine_lower,
+            "has_ac": bool(row.get("hasAc")),
+            "has_5_speed": "5-speed" in transmission_lower or "5-speed" in title_lower,
+            "engine_swap_type": _detect_engine_swap(engine_lower),
+            "has_widebody": "widebody" in title_lower or "wide body" in title_lower,
+            "has_recaro": "recaro" in title_lower,
+            "has_ducktail": "ducktail" in title_lower,
+            "has_lsd": "lsd" in title_lower or "limited slip" in title_lower,
+            "mileage_band": _classify_mileage(row.get("mileage")),
+            "rust_grade": _classify_rust(row.get("rustNotes")),
+            "color_desirability": 0.5,
+            "location_region": "unknown",
+            "current_bid": row.get("currentBid") or row.get("final_price", 0),
+            "bid_count": row.get("bidCount", 0),
+            "hours_remaining": 0.0,  # Ended auctions
+            "bid_velocity_1h": 0.0,
+            "bid_velocity_6h": 0.0,
+            "bid_velocity_24h": 0.0,
+            "reserve_met": row.get("reserveStatus") == "met",
+        }
+
+        # Check bonus features if available
+        bonus = row.get("bonusFeatures", [])
+        if isinstance(bonus, list):
+            for key in bonus:
+                if key == "has_ac":
+                    raw["has_ac"] = True
+                elif key == "s14_swap":
+                    raw["engine_swap_type"] = "s14"
+
+        features = build_feature_vector(raw)
         feature_rows.append(features)
         targets.append(row["final_price"])
 
     X = pd.DataFrame(feature_rows)
     y = pd.Series(targets, name="final_price")
     return X, y
+
+
+def _detect_engine_swap(engine: str) -> str:
+    if "s14" in engine:
+        return "s14"
+    if "m42" in engine:
+        return "m42"
+    if "f20c" in engine:
+        return "f20c"
+    if "swap" in engine or "converted" in engine:
+        return "other"
+    return "none"
+
+
+def _classify_mileage(mileage: Any) -> str:
+    if not mileage:
+        return "unknown"
+    import re
+    nums = re.findall(r"\d+", str(mileage).replace(",", ""))
+    if not nums:
+        return "unknown"
+    val = int(nums[0])
+    if val < 50000:
+        return "<50k"
+    if val < 100000:
+        return "50-100k"
+    if val < 150000:
+        return "100-150k"
+    return ">150k"
+
+
+def _classify_rust(notes: Any) -> str:
+    if not notes:
+        return "unknown"
+    lower = str(notes).lower()
+    if "none" in lower or "rust-free" in lower:
+        return "none"
+    if "minor" in lower or "light" in lower:
+        return "minor"
+    if "moderate" in lower or "some" in lower:
+        return "moderate"
+    if "heavy" in lower or "significant" in lower:
+        return "heavy"
+    return "unknown"
 
 
 def train_model(X_train: pd.DataFrame, y_train: pd.Series) -> dict[str, Any]:
