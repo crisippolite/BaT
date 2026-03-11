@@ -48,19 +48,28 @@ export function Sidebar() {
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: "column",
+          gap: "var(--space-3)",
+          marginTop: "auto",
           paddingTop: "var(--space-4)",
           borderTop: "1px solid var(--color-border)",
         }}
       >
-        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)" }}>
-          Monitoring
-        </span>
-        <Toggle enabled={monitoringEnabled} onToggle={toggleMonitoring} />
-      </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)" }}>
+            Monitoring
+          </span>
+          <Toggle enabled={monitoringEnabled} onToggle={toggleMonitoring} />
+        </div>
 
-      <AuthButtons />
+        <AuthButtons />
+      </div>
     </nav>
   );
 }

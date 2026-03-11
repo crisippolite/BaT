@@ -20,8 +20,6 @@ function AuthButtonsInner() {
         display: "flex",
         alignItems: "center",
         gap: "var(--space-3)",
-        paddingTop: "var(--space-4)",
-        borderTop: "1px solid var(--color-border)",
       }}
     >
       {isSignedIn ? (

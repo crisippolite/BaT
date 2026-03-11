@@ -127,6 +127,11 @@ export const getDefaults = query({
         recaro_seats: 1,
         track_suspension: 1,
         lightweight_wheels: 1,
+        round_taillights: 1,
+        ducktail_spoiler: 1,
+        front_air_dam: 1,
+        rebuilt_transmission: 1,
+        custom_shifter: 1,
       },
       alerts: {
         newMatch: true,

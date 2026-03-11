@@ -20,7 +20,9 @@ import type * as mlBridge from "../mlBridge.js";
 import type * as predictions from "../predictions.js";
 import type * as preferences from "../preferences.js";
 import type * as scores from "../scores.js";
+import type * as seed from "../seed.js";
 import type * as signals from "../signals.js";
+import type * as voicePrefs from "../voicePrefs.js";
 
 import type {
   ApiFromModules,
@@ -41,7 +43,9 @@ declare const fullApi: ApiFromModules<{
   predictions: typeof predictions;
   preferences: typeof preferences;
   scores: typeof scores;
+  seed: typeof seed;
   signals: typeof signals;
+  voicePrefs: typeof voicePrefs;
 }>;
 
 /**
