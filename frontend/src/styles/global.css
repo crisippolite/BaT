@@ -17,11 +17,12 @@ body {
 body {
   font-family: var(--font-sans);
   font-size: var(--text-base);
+  font-weight: 400;
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.5;
 }
 
@@ -50,21 +51,21 @@ img {
 
 /* Scrollbar — barely there */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.10);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 ::selection {
-  background: rgba(196, 80, 28, 0.12);
+  background: rgba(214, 58, 34, 0.12);
   color: var(--color-text);
 }
 
@@ -82,10 +83,10 @@ img {
   padding: var(--space-10) var(--space-12);
 }
 
-/* Card grid — bigger cards, more breathing room */
+/* Card grid */
 .auction-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: var(--space-6);
 }
 
