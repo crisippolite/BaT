@@ -1,5 +1,5 @@
 /* BaT Signal — Component Styles
-   SoCal classic car aesthetic. Dark, warm, confident. */
+   Warm ivory, editorial. RM Sotheby's catalog on cream stock. */
 
 /* === Sidebar === */
 .sidebar {
@@ -41,13 +41,13 @@
   border-radius: 50%;
   background: var(--color-orange);
   display: inline-block;
-  box-shadow: 0 0 8px rgba(212, 135, 44, 0.5);
+  box-shadow: 0 0 6px rgba(181, 101, 29, 0.4);
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(212, 135, 44, 0.5); }
-  50% { opacity: 0.6; box-shadow: 0 0 4px rgba(212, 135, 44, 0.25); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(181, 101, 29, 0.4); }
+  50% { opacity: 0.5; box-shadow: 0 0 3px rgba(181, 101, 29, 0.2); }
 }
 
 .nav-item {
@@ -280,7 +280,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--color-text-sec);
+  background: var(--color-border-focus);
   position: absolute;
   top: 2px;
   left: 2px;
