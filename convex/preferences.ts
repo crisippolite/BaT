@@ -1,16 +1,31 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Get preferences for the authenticated user
+// List all profiles for the authenticated user
+export const listProfiles = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("userPreferences")
+      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .collect();
+  },
+});
+
+// Get the active (isDefault) profile for the authenticated user
 export const get = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    return await ctx.db
+    const profiles = await ctx.db
       .query("userPreferences")
       .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
-      .first();
+      .collect();
+
+    return profiles.find((p) => p.isDefault) ?? profiles[0] ?? null;
   },
 });
 
@@ -25,9 +40,10 @@ export const getByToken = query({
   },
 });
 
-// Save preferences (works for both authenticated and anonymous users)
+// Save preferences — updates existing profile or creates new one
 export const save = mutation({
   args: {
+    profileId: v.optional(v.id("userPreferences")),
     token: v.optional(v.string()),
     name: v.optional(v.string()),
     prefsJson: v.any(),
@@ -35,48 +51,63 @@ export const save = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
 
-    // Authenticated user flow
     if (identity) {
       const userId = identity.subject;
-      const existing = await ctx.db
+
+      // If a specific profile ID is given, update that one
+      if (args.profileId) {
+        const existing = await ctx.db.get(args.profileId);
+        if (existing && existing.userId === userId) {
+          await ctx.db.patch(args.profileId, {
+            prefsJson: args.prefsJson,
+            name: args.name ?? existing.name,
+          });
+          return { id: args.profileId, userId };
+        }
+      }
+
+      // Otherwise find active profile
+      const profiles = await ctx.db
         .query("userPreferences")
         .withIndex("by_userId", (q) => q.eq("userId", userId))
-        .first();
+        .collect();
 
-      if (existing) {
-        await ctx.db.patch(existing._id, {
+      const active = profiles.find((p) => p.isDefault) ?? profiles[0];
+
+      if (active) {
+        await ctx.db.patch(active._id, {
           prefsJson: args.prefsJson,
-          name: args.name ?? existing.name,
+          name: args.name ?? active.name,
         });
-        return { id: existing._id, userId };
-      } else {
-        // Check if there's a legacy token-based record to migrate
-        let legacyPrefs = null;
-        if (args.token) {
-          legacyPrefs = await ctx.db
-            .query("userPreferences")
-            .withIndex("by_token", (q) => q.eq("token", args.token))
-            .first();
-        }
-
-        if (legacyPrefs) {
-          // Migrate: attach userId to existing record
-          await ctx.db.patch(legacyPrefs._id, {
-            userId,
-            prefsJson: args.prefsJson,
-            name: args.name ?? legacyPrefs.name,
-          });
-          return { id: legacyPrefs._id, userId };
-        }
-
-        const id = await ctx.db.insert("userPreferences", {
-          name: args.name ?? identity.name ?? "Default",
-          isDefault: true,
-          prefsJson: args.prefsJson,
-          userId,
-        });
-        return { id, userId };
+        return { id: active._id, userId };
       }
+
+      // Check for legacy token-based record to migrate
+      let legacyPrefs = null;
+      if (args.token) {
+        legacyPrefs = await ctx.db
+          .query("userPreferences")
+          .withIndex("by_token", (q) => q.eq("token", args.token))
+          .first();
+      }
+
+      if (legacyPrefs) {
+        await ctx.db.patch(legacyPrefs._id, {
+          userId,
+          prefsJson: args.prefsJson,
+          name: args.name ?? legacyPrefs.name,
+          isDefault: true,
+        });
+        return { id: legacyPrefs._id, userId };
+      }
+
+      const id = await ctx.db.insert("userPreferences", {
+        name: args.name ?? identity.name ?? "Default",
+        isDefault: true,
+        prefsJson: args.prefsJson,
+        userId,
+      });
+      return { id, userId };
     }
 
     // Anonymous fallback (legacy)
@@ -108,6 +139,127 @@ export const save = mutation({
   },
 });
 
+// Create a new watch profile
+export const createProfile = mutation({
+  args: {
+    name: v.string(),
+    prefsJson: v.any(),
+    setActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Authentication required");
+
+    const userId = identity.subject;
+
+    if (args.setActive) {
+      const existing = await ctx.db
+        .query("userPreferences")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .collect();
+
+      for (const profile of existing) {
+        if (profile.isDefault) {
+          await ctx.db.patch(profile._id, { isDefault: false });
+        }
+      }
+    }
+
+    const id = await ctx.db.insert("userPreferences", {
+      name: args.name,
+      isDefault: args.setActive ?? false,
+      prefsJson: args.prefsJson,
+      userId,
+    });
+
+    return { id };
+  },
+});
+
+// Switch active profile
+export const setActiveProfile = mutation({
+  args: { profileId: v.id("userPreferences") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Authentication required");
+
+    const userId = identity.subject;
+    const target = await ctx.db.get(args.profileId);
+    if (!target || target.userId !== userId) {
+      throw new Error("Profile not found");
+    }
+
+    const all = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    for (const profile of all) {
+      if (profile.isDefault && profile._id !== args.profileId) {
+        await ctx.db.patch(profile._id, { isDefault: false });
+      }
+    }
+
+    await ctx.db.patch(args.profileId, { isDefault: true });
+    return { id: args.profileId };
+  },
+});
+
+// Delete a profile (cannot delete last one)
+export const deleteProfile = mutation({
+  args: { profileId: v.id("userPreferences") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Authentication required");
+
+    const userId = identity.subject;
+    const target = await ctx.db.get(args.profileId);
+    if (!target || target.userId !== userId) {
+      throw new Error("Profile not found");
+    }
+
+    const all = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    if (all.length <= 1) {
+      throw new Error("Cannot delete your only profile");
+    }
+
+    await ctx.db.delete(args.profileId);
+
+    if (target.isDefault) {
+      const remaining = all.find((p) => p._id !== args.profileId);
+      if (remaining) {
+        await ctx.db.patch(remaining._id, { isDefault: true });
+      }
+    }
+
+    return { deleted: true };
+  },
+});
+
+// Rename a profile
+export const renameProfile = mutation({
+  args: {
+    profileId: v.id("userPreferences"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Authentication required");
+
+    const target = await ctx.db.get(args.profileId);
+    if (!target || target.userId !== identity.subject) {
+      throw new Error("Profile not found");
+    }
+
+    await ctx.db.patch(args.profileId, { name: args.name });
+    return { id: args.profileId };
+  },
+});
+
 // Get default preference template
 export const getDefaults = query({
   handler: async () => {
@@ -127,6 +279,11 @@ export const getDefaults = query({
         recaro_seats: 1,
         track_suspension: 1,
         lightweight_wheels: 1,
+        round_taillights: 1,
+        ducktail_spoiler: 1,
+        front_air_dam: 1,
+        rebuilt_transmission: 1,
+        custom_shifter: 1,
       },
       alerts: {
         newMatch: true,

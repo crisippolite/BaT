@@ -12,7 +12,11 @@ export function Sidebar() {
 
   return (
     <nav className="sidebar">
-      <div className="sidebar-logo">BaT Signal</div>
+      <div className="sidebar-logo">
+        <span className="logo-bat">BAT</span>
+        <span className="logo-signal">SIGNAL</span>
+        <span className="logo-dot" />
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
         <NavLink
@@ -48,19 +52,28 @@ export function Sidebar() {
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: "column",
+          gap: "var(--space-3)",
+          marginTop: "auto",
           paddingTop: "var(--space-4)",
           borderTop: "1px solid var(--color-border)",
         }}
       >
-        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)" }}>
-          Monitoring
-        </span>
-        <Toggle enabled={monitoringEnabled} onToggle={toggleMonitoring} />
-      </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)" }}>
+            Monitoring
+          </span>
+          <Toggle enabled={monitoringEnabled} onToggle={toggleMonitoring} />
+        </div>
 
-      <AuthButtons />
+        <AuthButtons />
+      </div>
     </nav>
   );
 }
