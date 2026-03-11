@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 // List all profiles for the authenticated user
@@ -292,11 +292,51 @@ export const getDefaults = query({
         highSnipeRisk: false,
       },
       searchProfile: {
+        make: "BMW",
+        model: "2002",
         yearMin: 1966,
         yearMax: 1975,
         priceMax: 50000,
         keywords: ["tii", "5-speed", "rust-free"],
       },
     };
+  },
+});
+
+// Get all watch profiles across all users (for scraper discovery)
+export const getAllWatchProfiles = internalQuery({
+  handler: async (ctx) => {
+    const allPrefs = await ctx.db.query("userPreferences").collect();
+
+    // Deduplicate by make+model — the scraper just needs to know
+    // which BaT categories to monitor
+    const seen = new Set<string>();
+    const profiles: Array<{
+      make: string;
+      model: string;
+      keywords: string[];
+    }> = [];
+
+    for (const pref of allPrefs) {
+      const sp = (pref.prefsJson as any)?.searchProfile;
+      if (!sp?.make || !sp?.model) continue;
+
+      const key = `${sp.make.toLowerCase()}/${sp.model.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      profiles.push({
+        make: sp.make,
+        model: sp.model,
+        keywords: sp.keywords ?? [],
+      });
+    }
+
+    // Always include BMW 2002 as a default if nothing else is configured
+    if (profiles.length === 0) {
+      profiles.push({ make: "BMW", model: "2002", keywords: [] });
+    }
+
+    return profiles;
   },
 });

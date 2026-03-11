@@ -591,8 +591,60 @@ export function PreferencesView() {
         <div className="prefs-section">
           <h2 className="prefs-section-title">Search Profile</h2>
           <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)", marginBottom: "var(--space-4)" }}>
-            Filter auctions by year range, budget, and keywords.
+            Tell us what car you're watching for. The scraper will monitor BaT for this make and model.
           </p>
+
+          <div className="prefs-row">
+            <span className="prefs-label">Make</span>
+            <input
+              type="text"
+              value={currentPrefs.searchProfile.make ?? "BMW"}
+              onChange={(e) =>
+                updatePrefs((p) => ({
+                  ...p,
+                  searchProfile: { ...p.searchProfile, make: e.target.value },
+                }))
+              }
+              placeholder="BMW"
+              style={{
+                width: 140,
+                padding: "5px 8px",
+                borderRadius: "var(--radius-md)",
+                border: "none",
+                borderBottom: "1px solid var(--color-border-focus)",
+                fontSize: "var(--text-sm)",
+                background: "none",
+                color: "var(--color-text)",
+                fontWeight: 600,
+              }}
+            />
+          </div>
+
+          <div className="prefs-row">
+            <span className="prefs-label">Model</span>
+            <input
+              type="text"
+              value={currentPrefs.searchProfile.model ?? "2002"}
+              onChange={(e) =>
+                updatePrefs((p) => ({
+                  ...p,
+                  searchProfile: { ...p.searchProfile, model: e.target.value },
+                }))
+              }
+              placeholder="2002"
+              style={{
+                width: 140,
+                padding: "5px 8px",
+                borderRadius: "var(--radius-md)",
+                border: "none",
+                borderBottom: "1px solid var(--color-border-focus)",
+                fontSize: "var(--text-sm)",
+                background: "none",
+                color: "var(--color-text)",
+                fontWeight: 600,
+              }}
+            />
+          </div>
 
           <div className="prefs-row">
             <span className="prefs-label">Year Range</span>
@@ -677,7 +729,7 @@ export function PreferencesView() {
         <div className="prefs-row">
           <div>
             <div className="prefs-label">New Matching Auction</div>
-            <div className="prefs-description">Alert when a new BMW 2002 is listed</div>
+            <div className="prefs-description">Alert when a new matching auction is listed</div>
           </div>
           <Toggle
             enabled={currentPrefs.alerts?.newMatch ?? true}

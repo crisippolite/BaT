@@ -23,8 +23,8 @@ export const upsertAuction = httpAction(async (ctx, request) => {
       batUrl: body.batUrl,
       title: body.title,
       year: body.year ?? undefined,
-      make: body.make ?? "BMW",
-      model: body.model ?? "2002",
+      make: body.make ?? undefined,
+      model: body.model ?? undefined,
       subtitle: body.subtitle ?? undefined,
       location: body.location ?? undefined,
       sellerUsername: body.sellerUsername ?? undefined,
@@ -127,6 +127,27 @@ export const exportTrainingData = httpAction(async (ctx, request) => {
   try {
     const data = await ctx.runQuery(internal.mlBridge.getTrainingData);
     return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: String(error) }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+});
+
+// HTTP action: get all watch profiles for scraper discovery
+export const getWatchProfiles = httpAction(async (ctx, request) => {
+  const secret = process.env.SCRAPER_SECRET;
+  if (!verifySecret(request, secret)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const profiles = await ctx.runQuery(internal.preferences.getAllWatchProfiles);
+    return new Response(JSON.stringify(profiles), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
