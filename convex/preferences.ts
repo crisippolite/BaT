@@ -1,7 +1,20 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Get preferences by anonymous token
+// Get preferences for the authenticated user
+export const get = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    return await ctx.db
+      .query("userPreferences")
+      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .first();
+  },
+});
+
+// Get preferences by anonymous token (legacy)
 export const getByToken = query({
   args: { token: v.string() },
   handler: async (ctx, args) => {
@@ -12,7 +25,7 @@ export const getByToken = query({
   },
 });
 
-// Create or update preferences (anonymous v1)
+// Save preferences (works for both authenticated and anonymous users)
 export const save = mutation({
   args: {
     token: v.optional(v.string()),
@@ -20,11 +33,56 @@ export const save = mutation({
     prefsJson: v.any(),
   },
   handler: async (ctx, args) => {
-    // Generate token if not provided
+    const identity = await ctx.auth.getUserIdentity();
+
+    // Authenticated user flow
+    if (identity) {
+      const userId = identity.subject;
+      const existing = await ctx.db
+        .query("userPreferences")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          prefsJson: args.prefsJson,
+          name: args.name ?? existing.name,
+        });
+        return { id: existing._id, userId };
+      } else {
+        // Check if there's a legacy token-based record to migrate
+        let legacyPrefs = null;
+        if (args.token) {
+          legacyPrefs = await ctx.db
+            .query("userPreferences")
+            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .first();
+        }
+
+        if (legacyPrefs) {
+          // Migrate: attach userId to existing record
+          await ctx.db.patch(legacyPrefs._id, {
+            userId,
+            prefsJson: args.prefsJson,
+            name: args.name ?? legacyPrefs.name,
+          });
+          return { id: legacyPrefs._id, userId };
+        }
+
+        const id = await ctx.db.insert("userPreferences", {
+          name: args.name ?? identity.name ?? "Default",
+          isDefault: true,
+          prefsJson: args.prefsJson,
+          userId,
+        });
+        return { id, userId };
+      }
+    }
+
+    // Anonymous fallback (legacy)
     const token =
       args.token ?? Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-    // Check for existing
     const existing = args.token
       ? await ctx.db
           .query("userPreferences")

@@ -11,6 +11,8 @@ build/
 
 # Convex generated files (regenerated on deploy)
 convex/_generated/
+convex/*.js
+frontend/convex/
 
 # Environment files
 .env

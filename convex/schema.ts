@@ -92,6 +92,9 @@ export default defineSchema({
     name: v.string(),
     isDefault: v.boolean(),
     prefsJson: v.any(), // Full preferences object (see spec)
-    token: v.optional(v.string()), // Anonymous token for v1 (no auth)
-  }).index("by_token", ["token"]),
+    token: v.optional(v.string()), // Anonymous token (legacy)
+    userId: v.optional(v.string()), // Clerk user ID
+  })
+    .index("by_token", ["token"])
+    .index("by_userId", ["userId"]),
 });
