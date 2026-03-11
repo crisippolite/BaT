@@ -53,3 +53,4 @@ ml/models/*.joblib
 
 # Plan files
 plan.md
+frontend/tsconfig.tsbuildinfo
