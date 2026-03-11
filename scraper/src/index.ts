@@ -19,6 +19,7 @@ app.get("/health", (_req, res) => {
 // Status endpoint
 app.get("/status", (_req, res) => {
   res.json({
+    watchProfiles: scheduler.getWatchProfiles(),
     tracked: scheduler.getStatus(),
   });
 });

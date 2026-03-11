@@ -1,5 +1,5 @@
 import { httpRouter } from "convex/server";
-import { upsertAuction, insertBids, logScrape, storePrediction, exportTrainingData } from "./ingest";
+import { upsertAuction, insertBids, logScrape, storePrediction, exportTrainingData, getWatchProfiles } from "./ingest";
 
 const http = httpRouter();
 
@@ -34,6 +34,13 @@ http.route({
   path: "/export/training-data",
   method: "GET",
   handler: exportTrainingData,
+});
+
+// Watch profiles for scraper discovery
+http.route({
+  path: "/scraper/watch-profiles",
+  method: "GET",
+  handler: getWatchProfiles,
 });
 
 export default http;

@@ -91,16 +91,16 @@ export class BatScraper {
   }
 
   /**
-   * Discover new BMW 2002 auctions from BaT search page
+   * Discover auctions from a BaT search/category page
    */
-  async discoverAuctions(): Promise<DiscoveredListing[]> {
+  async discoverAuctions(searchUrl: string): Promise<DiscoveredListing[]> {
     if (!this.context) throw new Error("Browser not initialized");
 
     await this.rateLimit();
 
     const page = await this.context.newPage();
     try {
-      await page.goto(config.batSearchUrl, {
+      await page.goto(searchUrl, {
         waitUntil: "domcontentloaded",
         timeout: 30000,
       });
@@ -111,10 +111,10 @@ export class BatScraper {
         .catch(() => {});
 
       const listings = await parseSearchPage(page);
-      console.log(`[scraper] Discovered ${listings.length} listings`);
+      console.log(`[scraper] Discovered ${listings.length} listings from ${searchUrl}`);
       return listings;
     } catch (error) {
-      console.error("[scraper] Discovery error:", error);
+      console.error(`[scraper] Discovery error for ${searchUrl}:`, error);
       return [];
     } finally {
       await page.close();

@@ -3,8 +3,6 @@
 export const config = {
   // BaT URLs
   batBaseUrl: process.env.BAT_BASE_URL || "https://bringatrailer.com",
-  batSearchUrl:
-    process.env.BAT_SEARCH_URL || "https://bringatrailer.com/bmw/2002/",
 
   // Convex endpoints
   convexSiteUrl: process.env.CONVEX_SITE_URL || "",
@@ -30,6 +28,9 @@ export const config = {
   // Discovery interval
   discoveryInterval: 30 * 60 * 1000, // 30 min
 
+  // How often to re-fetch watch profiles from Convex
+  profileRefreshInterval: 5 * 60 * 1000, // 5 min
+
   // Rate limiting
   minRequestDelay: 5000, // 5s between requests
   requestJitter: 0.2, // ±20% randomization
@@ -43,6 +44,21 @@ export const config = {
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
   ],
 } as const;
+
+// Watch profile shape (from Convex)
+export interface WatchProfile {
+  make: string;
+  model: string;
+  keywords: string[];
+}
+
+// Build a BaT search URL from a watch profile
+// BaT category pages: bringatrailer.com/{make}/{model}/
+export function buildSearchUrl(profile: WatchProfile): string {
+  const make = profile.make.toLowerCase().replace(/\s+/g, "-");
+  const model = profile.model.toLowerCase().replace(/\s+/g, "-");
+  return `${config.batBaseUrl}/${make}/${model}/`;
+}
 
 // Get a random user agent
 export function getRandomUserAgent(): string {

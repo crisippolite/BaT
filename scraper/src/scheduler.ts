@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { config, getIntervalForAuction } from "./config.js";
+import { config, getIntervalForAuction, buildSearchUrl, type WatchProfile } from "./config.js";
 import { BatScraper } from "./scraper.js";
 
 interface TrackedAuction {
@@ -8,11 +8,14 @@ interface TrackedAuction {
   endTime: number | null;
   lastScraped: number;
   nextScrape: number;
+  profileKey: string; // "make/model" that discovered this auction
 }
 
 export class ScrapeScheduler {
   private scraper: BatScraper;
   private trackedAuctions: Map<string, TrackedAuction> = new Map();
+  private watchProfiles: WatchProfile[] = [];
+  private lastProfileFetch = 0;
   private discoveryTask: cron.ScheduledTask | null = null;
   private scrapeLoop: NodeJS.Timeout | null = null;
   private running = false;
@@ -61,27 +64,92 @@ export class ScrapeScheduler {
   }
 
   /**
-   * Discover new auctions and add them to tracking
+   * Fetch watch profiles from Convex (all users' search profiles, deduped)
+   */
+  private async fetchWatchProfiles(): Promise<WatchProfile[]> {
+    const now = Date.now();
+    if (
+      this.watchProfiles.length > 0 &&
+      now - this.lastProfileFetch < config.profileRefreshInterval
+    ) {
+      return this.watchProfiles;
+    }
+
+    try {
+      const url = `${config.convexSiteUrl}/scraper/watch-profiles`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${config.scraperSecret}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(
+          `[scheduler] Failed to fetch watch profiles: ${response.status}`
+        );
+        // Fall back to cached or default
+        if (this.watchProfiles.length > 0) return this.watchProfiles;
+        return [{ make: "BMW", model: "2002", keywords: [] }];
+      }
+
+      this.watchProfiles = await response.json();
+      this.lastProfileFetch = now;
+
+      console.log(
+        `[scheduler] Loaded ${this.watchProfiles.length} watch profile(s): ${this.watchProfiles
+          .map((p) => `${p.make} ${p.model}`)
+          .join(", ")}`
+      );
+
+      return this.watchProfiles;
+    } catch (error) {
+      console.error("[scheduler] Error fetching watch profiles:", error);
+      if (this.watchProfiles.length > 0) return this.watchProfiles;
+      return [{ make: "BMW", model: "2002", keywords: [] }];
+    }
+  }
+
+  /**
+   * Discover new auctions for all watch profiles
    */
   private async runDiscovery(): Promise<void> {
-    console.log("[scheduler] Running auction discovery...");
-    const listings = await this.scraper.discoverAuctions();
+    const profiles = await this.fetchWatchProfiles();
 
-    for (const listing of listings) {
-      if (!this.trackedAuctions.has(listing.batId)) {
-        this.trackedAuctions.set(listing.batId, {
-          batId: listing.batId,
-          batUrl: listing.batUrl,
-          endTime: null, // Will be populated after first scrape
-          lastScraped: 0,
-          nextScrape: Date.now(), // Scrape immediately
-        });
-        console.log(`[scheduler] Tracking new auction: ${listing.batId}`);
+    console.log(
+      `[scheduler] Running discovery for ${profiles.length} profile(s)...`
+    );
+
+    for (const profile of profiles) {
+      if (!this.running) break;
+
+      const searchUrl = buildSearchUrl(profile);
+      const profileKey = `${profile.make.toLowerCase()}/${profile.model.toLowerCase()}`;
+
+      console.log(
+        `[scheduler] Discovering ${profile.make} ${profile.model} at ${searchUrl}`
+      );
+
+      const listings = await this.scraper.discoverAuctions(searchUrl);
+
+      for (const listing of listings) {
+        if (!this.trackedAuctions.has(listing.batId)) {
+          this.trackedAuctions.set(listing.batId, {
+            batId: listing.batId,
+            batUrl: listing.batUrl,
+            endTime: null,
+            lastScraped: 0,
+            nextScrape: Date.now(),
+            profileKey,
+          });
+          console.log(
+            `[scheduler] Tracking new auction: ${listing.batId} (${profileKey})`
+          );
+        }
       }
     }
 
     console.log(
-      `[scheduler] Tracking ${this.trackedAuctions.size} auctions`
+      `[scheduler] Tracking ${this.trackedAuctions.size} total auction(s)`
     );
   }
 
@@ -158,6 +226,7 @@ export class ScrapeScheduler {
       endTime: endTime ?? null,
       lastScraped: 0,
       nextScrape: Date.now(),
+      profileKey: "manual",
     });
   }
 
@@ -169,12 +238,21 @@ export class ScrapeScheduler {
     endTime: number | null;
     lastScraped: number;
     nextScrape: number;
+    profileKey: string;
   }> {
     return Array.from(this.trackedAuctions.values()).map((a) => ({
       batId: a.batId,
       endTime: a.endTime,
       lastScraped: a.lastScraped,
       nextScrape: a.nextScrape,
+      profileKey: a.profileKey,
     }));
+  }
+
+  /**
+   * Get current watch profiles
+   */
+  getWatchProfiles(): WatchProfile[] {
+    return this.watchProfiles;
   }
 }
