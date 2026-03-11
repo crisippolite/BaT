@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { useUser, SignInButton } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { Toggle } from "./Toggle";
+import { SignInBanner } from "./AuthButtons";
 import toast from "react-hot-toast";
 
 const BONUS_FEATURES = [
@@ -17,7 +17,6 @@ const BONUS_FEATURES = [
 ];
 
 export function PreferencesView() {
-  const { isSignedIn } = useUser();
   const defaults = useQuery(api.preferences.getDefaults);
   const savedPrefs = useQuery(api.preferences.get);
   const savePrefs = useMutation(api.preferences.save);
@@ -86,40 +85,7 @@ export function PreferencesView() {
         </button>
       </div>
 
-      {!isSignedIn && (
-        <div
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            padding: "var(--space-4)",
-            marginBottom: "var(--space-5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-sec)" }}>
-            Sign in to save preferences across devices
-          </span>
-          <SignInButton mode="modal">
-            <button
-              style={{
-                background: "var(--color-orange)",
-                color: "white",
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                padding: "6px 16px",
-                fontSize: "var(--text-sm)",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Sign In
-            </button>
-          </SignInButton>
-        </div>
-      )}
+      <SignInBanner />
 
       {/* Pass/Fail Criteria */}
       <div className="prefs-section">
