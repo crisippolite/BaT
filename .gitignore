@@ -9,8 +9,7 @@ build/
 .next/
 .vercel/
 
-# Convex generated files (regenerated on deploy)
-convex/_generated/
+# Convex compiled JS (regenerated on deploy)
 convex/*.js
 frontend/convex/
 
