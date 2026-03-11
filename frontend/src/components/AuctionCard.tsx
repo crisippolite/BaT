@@ -28,17 +28,14 @@ interface AuctionCardProps {
 
 export function AuctionCard({ auction, score, signals }: AuctionCardProps) {
   const navigate = useNavigate();
-  const { compareIds } = useAppStore();
+  const { compareIds, toggleCompare } = useAppStore();
   const isCompared = compareIds.includes(auction._id);
-  const showAccent = score != null && score >= 85;
 
   return (
     <div
       className={`auction-card ${isCompared ? "compared" : ""}`}
       onClick={() => navigate(`/auction/${auction._id}`)}
     >
-      {showAccent && <div className="auction-card-accent-strip" />}
-
       {auction.imageUrl ? (
         <img
           src={auction.imageUrl}
@@ -81,6 +78,12 @@ export function AuctionCard({ auction, score, signals }: AuctionCardProps) {
             }
             variant="pred"
           />
+          {auction.prediction && (
+            <MetricCell
+              label="P10–P90"
+              value={`${formatPrice(auction.prediction.confidenceLow)}–${formatPrice(auction.prediction.confidenceHigh)}`}
+            />
+          )}
           <MetricCell
             label="Bids"
             value={String(auction.bidCount ?? 0)}
@@ -88,22 +91,44 @@ export function AuctionCard({ auction, score, signals }: AuctionCardProps) {
         </div>
 
         {signals && (
-          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
             <SignalBadge type="velocity" value={signals.bidVelocity ?? null} />
-            <SignalBadge type="snipe" value={signals.lastMinuteProb ?? null} />
             <SignalBadge type="value" value={signals.valueSignal ?? null} />
+            <SignalBadge type="snipe" value={signals.lastMinuteProb ?? null} />
             <SignalBadge type="reserve_risk" value={signals.reserveRisk ?? null} />
           </div>
         )}
       </div>
 
       <div className="auction-card-footer">
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
           <ReserveBadge status={auction.reserveStatus as "met" | "not_met" | "unknown"} />
           <TimeLeft endTime={auction.endTime} />
         </div>
 
-        {score != null && <ScoreRing score={score} size={40} />}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCompare(auction._id);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: isCompared ? "var(--color-orange)" : "var(--color-text-muted)",
+              cursor: "pointer",
+              fontSize: "var(--text-xs)",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              padding: "4px 0",
+              transition: "color 0.15s",
+            }}
+          >
+            {isCompared ? "Comparing" : "Compare"}
+          </button>
+          {score != null && <ScoreRing score={score} size={40} />}
+        </div>
       </div>
     </div>
   );

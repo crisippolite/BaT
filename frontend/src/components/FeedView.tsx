@@ -4,6 +4,7 @@ import { AuctionGrid } from "./AuctionGrid";
 
 export function FeedView() {
   const auctions = useQuery(api.auctions.list, { status: "active", limit: 50 });
+  const prefs = useQuery(api.preferences.get);
 
   return (
     <div>
@@ -23,7 +24,7 @@ export function FeedView() {
       {auctions === undefined ? (
         <div className="loading">Loading auctions...</div>
       ) : (
-        <AuctionGrid auctions={auctions} />
+        <AuctionGrid auctions={auctions} prefsJson={prefs?.prefsJson ?? null} />
       )}
     </div>
   );

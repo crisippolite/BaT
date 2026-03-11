@@ -8,7 +8,7 @@ import { AuthButtons } from "./AuthButtons";
 export function Sidebar() {
   const auctions = useQuery(api.auctions.list, { status: "active", limit: 100 });
   const activeCount = auctions?.length ?? 0;
-  const { monitoringEnabled, toggleMonitoring } = useAppStore();
+  const { monitoringEnabled, toggleMonitoring, compareIds } = useAppStore();
 
   return (
     <nav className="sidebar">
@@ -31,7 +31,10 @@ export function Sidebar() {
           to="/compare"
           className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
         >
-          Compare
+          <span>Compare</span>
+          {compareIds.length > 0 && (
+            <span className="nav-item-count">{compareIds.length}</span>
+          )}
         </NavLink>
 
         <NavLink
