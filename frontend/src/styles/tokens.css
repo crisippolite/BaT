@@ -1,47 +1,63 @@
-/* BaT Signal — Design Tokens */
+/* BaT Signal — Design Tokens
+   Palette: Dark garage, warm amber instruments, California golden hour.
+   Think Gooding & Company catalog meets Petersen Museum after-hours. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
+
 :root {
-  /* Backgrounds */
-  --color-bg: #f8f9fa;
-  --color-surface: #ffffff;
-  --color-bg-subtle: #f3f4f6;
+  /* === Backgrounds — dark, rich, layered === */
+  --color-bg: #0c0c0e;
+  --color-surface: #161619;
+  --color-surface-alt: #1c1c20;
+  --color-bg-subtle: #1e1e22;
+  --color-bg-elevated: #222226;
 
-  /* Borders */
-  --color-border: #e5e7eb;
-  --color-border-focus: #d1d5db;
+  /* === Borders — subtle, warm-tinted === */
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-focus: rgba(255, 255, 255, 0.14);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
 
-  /* Typography */
-  --color-text: #111827;
-  --color-text-sec: #6b7280;
-  --color-text-muted: #9ca3af;
+  /* === Typography — cream on dark === */
+  --color-text: #f0ece4;
+  --color-text-sec: #9a9590;
+  --color-text-muted: #5e5a55;
 
-  /* Brand */
-  --color-orange: #e05c1a;
-  --color-orange-light: #fff4ee;
-  --color-orange-border: #fed7aa;
+  /* === Brand — California amber/gold, warm signal orange === */
+  --color-orange: #d4872c;
+  --color-orange-light: rgba(212, 135, 44, 0.1);
+  --color-orange-border: rgba(212, 135, 44, 0.25);
+  --color-orange-glow: rgba(212, 135, 44, 0.06);
 
-  /* Semantic */
-  --color-green: #16a34a;
-  --color-green-light: #f0fdf4;
-  --color-red: #dc2626;
-  --color-red-light: #fef2f2;
-  --color-blue: #2563eb;
-  --color-blue-light: #eff6ff;
-  --color-yellow: #d97706;
-  --color-yellow-light: #fffbeb;
+  /* === Accent — cool steel for data contrast === */
+  --color-accent: #c2a66e;
+  --color-accent-light: rgba(194, 166, 110, 0.1);
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.12),
-    0 8px 24px rgba(0, 0, 0, 0.06);
-  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* === Semantic — muted, sophisticated === */
+  --color-green: #5da67a;
+  --color-green-light: rgba(93, 166, 122, 0.1);
+  --color-red: #c75050;
+  --color-red-light: rgba(199, 80, 80, 0.1);
+  --color-blue: #5b8fd4;
+  --color-blue-light: rgba(91, 143, 212, 0.1);
+  --color-yellow: #c9a84c;
+  --color-yellow-light: rgba(201, 168, 76, 0.1);
 
-  /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-pill: 20px;
+  /* === Shadows — deep, ambient === */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4),
+    0 12px 40px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(212, 135, 44, 0.08);
+  --shadow-dropdown: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(212, 135, 44, 0.08);
 
-  /* Spacing (4px base) */
+  /* === Radii — slightly sharper, more architectural === */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 100px;
+
+  /* === Spacing (4px base) === */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -51,17 +67,19 @@
   --space-8: 32px;
   --space-10: 40px;
 
-  /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
-    Arial, sans-serif;
-  --font-mono: "SF Mono", "Fira Mono", "Consolas", "Monaco", monospace;
+  /* === Typography — refined, readable === */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Mono", "Consolas", monospace;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Type scale */
+  /* === Type scale === */
   --text-xs: 11px;
   --text-sm: 12.5px;
   --text-base: 14px;
-  --text-md: 15.5px;
-  --text-lg: 18px;
+  --text-md: 15px;
+  --text-lg: 17px;
   --text-xl: 20px;
-  --text-2xl: 24px;
+  --text-2xl: 26px;
+  --text-3xl: 32px;
 }

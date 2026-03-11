@@ -12,7 +12,11 @@ export function Sidebar() {
 
   return (
     <nav className="sidebar">
-      <div className="sidebar-logo">BaT Signal</div>
+      <div className="sidebar-logo">
+        <span className="logo-bat">BAT</span>
+        <span className="logo-signal">SIGNAL</span>
+        <span className="logo-dot" />
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
         <NavLink
