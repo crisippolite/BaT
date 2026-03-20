@@ -1,6 +1,50 @@
 import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
+// Owner Clerk user ID — gets BMW 2002 defaults automatically.
+// Set via `npx convex env set OWNER_CLERK_USER_ID user_xxxxx` or
+// replace the fallback string below with your actual Clerk user ID.
+const OWNER_USER_ID = process.env.OWNER_CLERK_USER_ID ?? "user_REPLACE_ME";
+
+// Canonical BMW 2002 preference defaults
+const BMW_2002_DEFAULTS = {
+  version: 1,
+  passFailCriteria: {
+    noStructuralRust: true,
+    pre1976: true,
+    cleanTitle: true,
+  },
+  bonusWeights: {
+    has_ac: 5,
+    has_5_speed: 2,
+    s14_swap: 2,
+    widebody: 2,
+    m42_swap: 1,
+    recaro_seats: 1,
+    track_suspension: 1,
+    lightweight_wheels: 1,
+    round_taillights: 1,
+    ducktail_spoiler: 1,
+    front_air_dam: 1,
+    rebuilt_transmission: 1,
+    custom_shifter: 1,
+  },
+  alerts: {
+    newMatch: true,
+    reserveRisk: true,
+    lastHour: true,
+    highSnipeRisk: false,
+  },
+  searchProfile: {
+    make: "BMW",
+    model: "2002",
+    yearMin: 1966,
+    yearMax: 1975,
+    priceMax: 50000,
+    keywords: ["tii", "5-speed", "rust-free"],
+  },
+};
+
 // List all profiles for the authenticated user
 export const listProfiles = query({
   handler: async (ctx) => {
@@ -14,7 +58,9 @@ export const listProfiles = query({
   },
 });
 
-// Get the active (isDefault) profile for the authenticated user
+// Get the active (isDefault) profile for the authenticated user.
+// For the owner (OWNER_USER_ID), falls back to BMW 2002 defaults
+// even if no profile has been saved yet.
 export const get = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -25,7 +71,22 @@ export const get = query({
       .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
       .collect();
 
-    return profiles.find((p) => p.isDefault) ?? profiles[0] ?? null;
+    const found = profiles.find((p) => p.isDefault) ?? profiles[0];
+    if (found) return found;
+
+    // Owner fallback — return BMW 2002 defaults without requiring a save
+    if (identity.subject === OWNER_USER_ID) {
+      return {
+        _id: "owner-default" as any,
+        _creationTime: Date.now(),
+        name: "My 2002",
+        isDefault: true,
+        userId: identity.subject,
+        prefsJson: BMW_2002_DEFAULTS,
+      };
+    }
+
+    return null;
   },
 });
 
@@ -263,43 +324,7 @@ export const renameProfile = mutation({
 // Get default preference template
 export const getDefaults = query({
   handler: async () => {
-    return {
-      version: 1,
-      passFailCriteria: {
-        noStructuralRust: true,
-        pre1976: true,
-        cleanTitle: true,
-      },
-      bonusWeights: {
-        has_ac: 5,
-        has_5_speed: 2,
-        s14_swap: 2,
-        widebody: 2,
-        m42_swap: 1,
-        recaro_seats: 1,
-        track_suspension: 1,
-        lightweight_wheels: 1,
-        round_taillights: 1,
-        ducktail_spoiler: 1,
-        front_air_dam: 1,
-        rebuilt_transmission: 1,
-        custom_shifter: 1,
-      },
-      alerts: {
-        newMatch: true,
-        reserveRisk: true,
-        lastHour: true,
-        highSnipeRisk: false,
-      },
-      searchProfile: {
-        make: "BMW",
-        model: "2002",
-        yearMin: 1966,
-        yearMax: 1975,
-        priceMax: 50000,
-        keywords: ["tii", "5-speed", "rust-free"],
-      },
-    };
+    return BMW_2002_DEFAULTS;
   },
 });
 
